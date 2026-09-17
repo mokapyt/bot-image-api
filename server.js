@@ -333,6 +333,7 @@ app.post('/api/render/podium-card', (req, res) => {
     const name2 = escapeXml(cleanText(top2.user_name) || top2.user_name);
     const name3 = escapeXml(cleanText(top3.user_name) || top3.user_name);
 
+    // التحقق من وجود صورة القروب، وإلا نتركها فارغة
     const groupAvatarTag = p.groupAvatarBase64 ? `
       <clipPath id="groupAvatarClip">
         <circle cx="16" cy="16" r="14" />
@@ -340,3 +341,124 @@ app.post('/api/render/podium-card', (req, res) => {
       <g transform="translate(-315, -16)">
         <circle cx="16" cy="16" r="15" fill="${primaryColor}" />
         <image href="${p.groupAvatarBase64}" x="0" y="0" width="32" height="32" preserveAspectRatio="xMidYMid slice" clip-path="url(#groupAvatarClip)" />
+      </g>
+    ` : '';
+
+    // توليد بطاقات المراكز الباقية (من المركز الرابع وحتى السابع)
+    const othersCards = others.map((u, i) => {
+        const rank = i + 4;
+        const yPos = 350 + i * 54;
+        const uName = escapeXml(cleanText(u.user_name) || u.user_name);
+        const uCount = Number(u.message_count) || 0;
+        return `
+          <g transform="translate(100, ${yPos})">
+            <rect width="950" height="46" rx="12" fill="rgba(22, 16, 28, 0.85)" stroke="rgba(255, 255, 255, 0.08)" stroke-width="1" />
+            <circle cx="30" cy="23" r="14" fill="rgba(255, 255, 255, 0.06)" />
+            <text x="30" y="28" text-anchor="middle" fill="#94a3b8" font-family="Cairo" font-weight="900" font-size="13">#${rank}</text>
+            <text x="920" y="29" text-anchor="end" fill="#ffffff" font-family="Cairo" font-weight="800" font-size="15">${uName}</text>
+            <g transform="translate(75, 23)">
+              <text x="20" y="6" text-anchor="start" fill="${primaryColor}" font-family="Cairo" font-weight="900" font-size="14">${uCount.toLocaleString()} رسالة</text>
+              ${SVG_ICONS.chat(primaryColor, 16)}
+            </g>
+          </g>
+        `;
+    }).join('\n');
+
+    const svg = `
+    <svg width="1150" height="630" viewBox="0 0 1150 630" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="goldPillarGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#fef08a" />
+          <stop offset="35%" stop-color="${primaryColor}" />
+          <stop offset="100%" stop-color="#b45309" />
+        </linearGradient>
+        <linearGradient id="silverPillarGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#f8fafc" />
+          <stop offset="40%" stop-color="#cbd5e1" />
+          <stop offset="100%" stop-color="#475569" />
+        </linearGradient>
+        <linearGradient id="bronzePillarGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#fed7aa" />
+          <stop offset="40%" stop-color="${secondaryColor}" />
+          <stop offset="100%" stop-color="#7c2d12" />
+        </linearGradient>
+        <filter id="goldGlow" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="8" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+        <pattern id="podiumGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+          <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255, 255, 255, 0.025)" stroke-width="1" />
+        </pattern>
+      </defs>
+      <rect width="1150" height="630" fill="#060302" />
+      <rect width="1150" height="630" fill="url(#podiumGrid)" />
+      <circle cx="575" cy="180" r="190" fill="${primaryColor}" fill-opacity="0.08" filter="url(#goldGlow)" />
+      
+      <g transform="translate(575, 38)">
+        <rect x="-330" y="-18" width="660" height="38" rx="19" fill="rgba(0,0,0,0.7)" stroke="${primaryColor}" stroke-width="1.5" stroke-opacity="0.6" />
+        ${groupAvatarTag}
+        <g transform="translate(-290, -12)">${SVG_ICONS.crown(primaryColor, 24)}</g>
+        <text text-anchor="middle" y="7" fill="#ffffff" font-family="Cairo" font-weight="900" font-size="17">
+          لوحة الشرف وأبطال التفاعل الشهري — ${groupName}
+        </text>
+        <g transform="translate(265, -12)">${SVG_ICONS.crown(primaryColor, 24)}</g>
+      </g>
+      
+      <g transform="translate(0, 70)">
+        <!-- المركز الثاني -->
+        <g transform="translate(260, 45)">
+          ${SVG_ICONS.silverMedal(24)}
+          <text x="0" y="45" text-anchor="middle" fill="#ffffff" font-family="Cairo" font-weight="900" font-size="16">${name2}</text>
+          <text x="0" y="66" text-anchor="middle" fill="#cbd5e1" font-family="Cairo" font-weight="800" font-size="14">${Number(top2.message_count).toLocaleString()} رسالة</text>
+          <rect x="-85" y="78" width="170" height="110" rx="12" fill="url(#silverPillarGrad)" stroke="#ffffff" stroke-width="2" />
+          <text x="0" y="152" text-anchor="middle" fill="#0f172a" font-family="Cairo" font-weight="900" font-size="52">2</text>
+        </g>
+        <!-- المركز الأول -->
+        <g transform="translate(575, 15)">
+          ${SVG_ICONS.goldMedal(28)}
+          <text x="0" y="52" text-anchor="middle" fill="#ffffff" font-family="Cairo" font-weight="900" font-size="19">${name1}</text>
+          <g transform="translate(0, 68)">
+            <text x="12" y="6" text-anchor="start" fill="#fef08a" font-family="Cairo" font-weight="900" font-size="15">${Number(top1.message_count).toLocaleString()} رسالة</text>
+            ${SVG_ICONS.chat('#fef08a', 16)}
+          </g>
+          <rect x="-100" y="86" width="200" height="135" rx="14" fill="url(#goldPillarGrad)" stroke="#ffffff" stroke-width="2.5" filter="url(#goldGlow)" />
+          <text x="0" y="176" text-anchor="middle" fill="#451a03" font-family="Cairo" font-weight="900" font-size="68">1</text>
+        </g>
+        <!-- المركز الثالث -->
+        <g transform="translate(890, 65)">
+          ${SVG_ICONS.bronzeMedal(22)}
+          <text x="0" y="42" text-anchor="middle" fill="#ffffff" font-family="Cairo" font-weight="900" font-size="16">${name3}</text>
+          <text x="0" y="62" text-anchor="middle" fill="#fed7aa" font-family="Cairo" font-weight="800" font-size="13">${Number(top3.message_count).toLocaleString()} رسالة</text>
+          <rect x="-80" y="74" width="160" height="92" rx="12" fill="url(#bronzePillarGrad)" stroke="#ffffff" stroke-width="2" />
+          <text x="0" y="138" text-anchor="middle" fill="#431407" font-family="Cairo" font-weight="900" font-size="44">3</text>
+        </g>
+      </g>
+      ${othersCards}
+      
+      <g transform="translate(575, 608)">
+        <g transform="translate(-145, -9)">${SVG_ICONS.lightning(primaryColor, 14)}</g>
+        <text text-anchor="middle" fill="rgba(255, 255, 255, 0.4)" font-family="Cairo" font-weight="800" font-size="12">
+          Activity Tracker Bot • لوحة الشرف الرسمية
+        </text>
+        <g transform="translate(135, -9)">${SVG_ICONS.lightning(primaryColor, 14)}</g>
+      </g>
+    </svg>`;
+
+    try {
+        const resvg = new Resvg(svg, {
+            fitTo: { mode: 'width', value: 3000 },
+            font: hasFont ? { fontFiles: [FONT_PATH], defaultFontFamily: 'Cairo', loadSystemFonts: true } : { loadSystemFonts: true }
+        });
+        res.setHeader('Content-Type', 'image/png');
+        res.send(resvg.render().asPng());
+    } catch (e) {
+        console.error(e);
+        res.status(500).send('Error rendering Podium Card');
+    }
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, '0.0.0.0', () => console.log('✅ API Server running on port', PORT))
