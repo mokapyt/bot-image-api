@@ -339,4 +339,4 @@ app.post('/api/render/podium-card', (req, res) => {
       </clipPath>
       <g transform="translate(-315, -16)">
         <circle cx="16" cy="16" r="15" fill="${primaryColor}" />
-        <image href="${p.groupAvatarB
+        <image href="${p.groupAvatarBase64}" x="0" y="0" width="32" height="32" preserveAspectRatio="xMidYMid slice" clip-path="url(#groupAvatarClip)" />
